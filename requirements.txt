@@ -1,0 +1,28 @@
+# Core numerics / point cloud I/O
+numpy
+scipy
+laspy[lazrs]
+open3d
+
+# Imaging
+opencv-python
+
+# Detection / classification (camera_feature_extraction)
+ultralytics
+torch
+torchvision
+
+# Geospatial (lidar_feature_extraction)
+pyproj
+geopandas
+shapely
+
+# Clustering / misc ML
+scikit-learn
+
+# HTTP (OSM Overpass lookups in lidar_feature_extraction)
+requests
+
+# Utility
+tqdm
+pandas

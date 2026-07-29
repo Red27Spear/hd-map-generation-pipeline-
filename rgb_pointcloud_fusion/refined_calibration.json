@@ -1,0 +1,129 @@
+{
+  "cameras": {
+    "4108690955": {
+      "_meaning": "dR_correction/dt_correction to compose ON TOP of CamExtr.json's own per-shot pose for this camera (R_actual = R_nominal @ dR, t_actual = t_nominal + R_nominal @ dt) -- NOT a base_link->camera R0 replacement.",
+      "dR_correction": [
+        [
+          0.8797836006665938,
+          0.46329324756525675,
+          0.10649029419886472
+        ],
+        [
+          -0.3062004910452302,
+          0.38093618415984826,
+          0.8724270071939508
+        ],
+        [
+          0.36362353510434786,
+          -0.800154354083118,
+          0.477002027626765
+        ]
+      ],
+      "dt_correction_m": [
+        0.2860523510500903,
+        -1.267248128548641,
+        -1.0162141903123976
+      ],
+      "correction_rotation_magnitude_deg": 68.35461643534472,
+      "correction_translation_magnitude_m": 1.6493741381031772,
+      "fx": 1308.455185,
+      "fy": 1308.417767,
+      "cx": 1243.555884,
+      "cy": 1033.156924
+    },
+    "4108736907": {
+      "_meaning": "dR_correction/dt_correction to compose ON TOP of CamExtr.json's own per-shot pose for this camera (R_actual = R_nominal @ dR, t_actual = t_nominal + R_nominal @ dt) -- NOT a base_link->camera R0 replacement.",
+      "dR_correction": [
+        [
+          1.0,
+          -2.0349950493424727e-10,
+          -7.398740963906889e-10
+        ],
+        [
+          2.0349950493424727e-10,
+          1.0,
+          -1.544572307495224e-09
+        ],
+        [
+          7.398740963906889e-10,
+          1.544572307495224e-09,
+          1.0
+        ]
+      ],
+      "dt_correction_m": [
+        4.552153436677433e-16,
+        -3.6873129182630893e-17,
+        -1.9707478770758463e-17
+      ],
+      "correction_rotation_magnitude_deg": 0.0,
+      "correction_translation_magnitude_m": 4.571312956752803e-16,
+      "fx": 1304.675251,
+      "fy": 1304.79539,
+      "cx": 1261.554166,
+      "cy": 1044.366832
+    },
+    "4108736902": {
+      "_meaning": "dR_correction/dt_correction to compose ON TOP of CamExtr.json's own per-shot pose for this camera (R_actual = R_nominal @ dR, t_actual = t_nominal + R_nominal @ dt) -- NOT a base_link->camera R0 replacement.",
+      "dR_correction": [
+        [
+          0.6477301987909923,
+          -0.6675847633018607,
+          0.36711874561424945
+        ],
+        [
+          0.2146220564210822,
+          0.6222376058474268,
+          0.7528331387278644
+        ],
+        [
+          -0.7310150220561593,
+          -0.4088409784701879,
+          0.5463205028660116
+        ]
+      ],
+      "dt_correction_m": [
+        -0.6460152612804835,
+        -0.13567124245697296,
+        -1.273654686946714
+      ],
+      "correction_rotation_magnitude_deg": 65.91169335751556,
+      "correction_translation_magnitude_m": 1.4345517297812729,
+      "fx": 1304.494187,
+      "fy": 1304.540875,
+      "cx": 1228.154371,
+      "cy": 1052.379474
+    },
+    "4108690914": {
+      "_meaning": "dR_correction/dt_correction to compose ON TOP of CamExtr.json's own per-shot pose for this camera (R_actual = R_nominal @ dR, t_actual = t_nominal + R_nominal @ dt) -- NOT a base_link->camera R0 replacement.",
+      "dR_correction": [
+        [
+          0.6489220801022876,
+          -0.4497231360052758,
+          -0.6137175530301379
+        ],
+        [
+          0.45220925295696635,
+          0.8766572808276979,
+          -0.16425225572846486
+        ],
+        [
+          0.611888000777775,
+          -0.1709418407335278,
+          0.772251229581935
+        ]
+      ],
+      "dt_correction_m": [
+        -0.11601337915440355,
+        0.17332678081708977,
+        -1.6784833419629661
+      ],
+      "correction_rotation_magnitude_deg": 49.540130376847095,
+      "correction_translation_magnitude_m": 1.6913922094944172,
+      "fx": 1307.406674,
+      "fy": 1307.804932,
+      "cx": 1206.69863,
+      "cy": 1001.643453
+    }
+  },
+  "lidars": {}
+}
