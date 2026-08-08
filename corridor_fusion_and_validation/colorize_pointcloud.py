@@ -36,10 +36,10 @@ from scipy.sparse.csgraph import connected_components
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from transformationTools import rotMat, transformMatrix
 
-CAMEXTR_PATH = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/CamExtr.json"
-PINHOLE_K_PATH = "/home/rohit/Documents/Output/data_fix/phase0_pinhole_K.json"
-DATA_FIX_DIR = "/home/rohit/Documents/Output/data_fix"
-OUTPUT_DIR = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization"
+CAMEXTR_PATH = "../config/CamExtr.json"
+PINHOLE_K_PATH = "./output/data_fix/phase0_pinhole_K.json"  # from phase0_image_fix.py
+DATA_FIX_DIR = "./output/data_fix"                          # from phase0_image_fix.py
+OUTPUT_DIR = "./output/colorization"
 
 BBOX_MARGIN_M = 20.0
 POINT_SEARCH_RADIUS_M = 30.0
@@ -744,7 +744,17 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python colorize_pointcloud.py <laz_file> [--pass1|--pass2] [--out <name.laz>]")
         print("       python colorize_pointcloud.py <laz_file> --labels <detections.jsonl> [--labels-out <out.laz>]")
+        print("       [--camextr PATH] [--pinhole-k PATH] [--output-dir DIR]  (override module defaults)")
         sys.exit(1)
+
+    if "--camextr" in sys.argv:
+        CAMEXTR_PATH = sys.argv[sys.argv.index("--camextr") + 1]
+    if "--pinhole-k" in sys.argv:
+        PINHOLE_K_PATH = sys.argv[sys.argv.index("--pinhole-k") + 1]
+    if "--output-dir" in sys.argv:
+        OUTPUT_DIR = sys.argv[sys.argv.index("--output-dir") + 1]
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
     if "--labels" in sys.argv:
         laz_in = sys.argv[1]
         det_path = sys.argv[sys.argv.index("--labels") + 1]
@@ -753,7 +763,10 @@ if __name__ == "__main__":
         else:
             base = os.path.basename(laz_in).replace(".laz", "")
             out_path = os.path.join(OUTPUT_DIR, f"{base}_labeled.laz")
-        bake_hover_labels(laz_in, det_path, out_path)
+        # camextr_path/pinhole_k_path passed explicitly: bake_hover_labels()'s
+        # own defaults were bound at module-load time, before any --camextr/
+        # --pinhole-k override above could take effect.
+        bake_hover_labels(laz_in, det_path, out_path, camextr_path=CAMEXTR_PATH, pinhole_k_path=PINHOLE_K_PATH)
     else:
         pf = "pass1" if "--pass1" in sys.argv else ("pass2" if "--pass2" in sys.argv else None)
         out_name = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else None

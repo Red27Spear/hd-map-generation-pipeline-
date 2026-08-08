@@ -24,7 +24,7 @@ Two fixes vs. the original:
 Usage:
     python phase2_strip_ground_v3.py <laz_file>
 
-Outputs (in /home/rohit/Documents/Output/phase2/):
+Outputs (in ./output/phase2/, or --output-dir if you add that flag):
     vertical_only_<part>.laz
     phase2_<part>_strip_report.txt
 """
@@ -37,7 +37,7 @@ import re
 import numpy as np
 import laspy
 
-OUTPUT_DIR = "/home/rohit/Documents/Output/phase2"
+OUTPUT_DIR = "./output/phase2"
 
 RANSAC_DIST_THRESH  = 0.15
 RANSAC_N_POINTS     = 3

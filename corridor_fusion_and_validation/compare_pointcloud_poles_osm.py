@@ -32,10 +32,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from colorize_pointcloud import CAMEXTR_PATH
 
 # All four overridable via CLI: python compare_pointcloud_poles_osm.py <poles_json> <osm_json> <out_json> <out_geojson>
-POLES_JSON = sys.argv[1] if len(sys.argv) > 1 else "/home/rohit/Downloads/Project/hd_map_p06/output/report/part48_area_pointcloud_poles.json"
-OSM_JSON = sys.argv[2] if len(sys.argv) > 2 else "/tmp/osm_part48_signals.json"
-OUT_JSON = sys.argv[3] if len(sys.argv) > 3 else "/home/rohit/Downloads/Project/hd_map_p06/output/report/pointcloud_poles_osm_comparison.json"
-OUT_GEOJSON = sys.argv[4] if len(sys.argv) > 4 else "/home/rohit/Downloads/Project/hd_map_p06/output/report/pointcloud_poles_osm_comparison.geojson"
+POLES_JSON = sys.argv[1] if len(sys.argv) > 1 else "./output/report/pointcloud_poles.json"
+OSM_JSON = sys.argv[2] if len(sys.argv) > 2 else "./output/report/osm_signals.json"
+OUT_JSON = sys.argv[3] if len(sys.argv) > 3 else "./output/report/pointcloud_poles_osm_comparison.json"
+OUT_GEOJSON = sys.argv[4] if len(sys.argv) > 4 else "./output/report/pointcloud_poles_osm_comparison.geojson"
 
 DEDUP_DIST_M = 1.5
 

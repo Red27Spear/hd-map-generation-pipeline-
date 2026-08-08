@@ -93,7 +93,29 @@ Poles seen only from a narrow angle (<15°) show a 40% higher median residual th
 
 Same environment as the rest of this repo (`pip install -r ../requirements.txt`); `open3d`, `laspy`, `scipy`, and `pyproj` are already in there and cover this stage's renderer, registration, and geodetic needs.
 
-**Most scripts here were written against this project's own multi-tile corridor dataset** (61 sequential survey tiles, not just the single `part15` tile bundled in `data/`), and several still have that dataset's absolute paths as module-level constants rather than full CLI arguments — a known gap versus `rgb_pointcloud_fusion`'s cleaner CLI-driven scripts. `render_corridor_driveThrough.py` and `build_corridor_driveThrough.py` are the two exceptions with real `--laz`/`--out`/`--pass` CLI flags; the rest will need their path constants edited to point at your own tile data before running. The demo data in `data/part15/` is enough to exercise the single-tile scripts (`precision_assessment.py`, `refine_triangulation.py`, `loop_closure_icp.py`, `pose_graph_slam.py` all ran against it directly, see `pipeline.py`); the multi-pass fusion and corridor-drive-through scripts need a second revisit tile of the same road, which isn't included in this repo's demo data.
+**Every script here takes its real inputs as CLI arguments** (`--help` on any of them for the exact flags) — none point at this project's own original machine paths anymore. Defaults are relative, assuming you run from within this directory: config-derived defaults (`--camextr`, `--intrinsics-xml`) point at `../config/`, and pipeline-intermediate defaults (detections, tags, gap-filled tiles) point at a local `./output/` that scripts create as needed.
+
+That said, **this stage was built and demonstrated against this project's own multi-tile corridor dataset** (61 sequential survey tiles, not just the single `part15` tile bundled in `data/`), so most scripts genuinely need real input files this repo doesn't bundle:
+
+- The demo data in `data/part15/` is enough to exercise the single-tile scripts end to end (`precision_assessment.py`, `refine_triangulation.py`, `loop_closure_icp.py`, `pose_graph_slam.py`; see `pipeline.py` for how they chain together) — but only after running `phase0_image_fix.py` and one of the `phase2_*.py` road/vertical classifiers on it first, since `precision_assessment.py` and `pipeline.py` expect a *classified* LAZ (`--road-laz`), not the raw tile.
+- `merge_overlapping_tiles.py`, `gapfill_recipient_from_donor.py`, `build_corridor_driveThrough.py`, and `render_corridor_driveThrough.py` need a **second revisit tile** of the same road (this project's own two-pass corridor), which isn't included in this repo's demo data — `part15` alone has nothing to fuse against.
+- `pool_all_pairs_osm.py` and `geometric_degeneracy_analysis.py` need pole JSONs from **multiple** revisit pairs (`--poles name:path`, repeatable) to do anything meaningful beyond a single pair.
+
+### Fetching OSM reference data
+
+`compare_pointcloud_poles_osm.py` and `pool_all_pairs_osm.py` both need a cached Overpass API response as `--osm-json`. Fetch one for your own tile/corridor's bounding box (converted to WGS84 lat/lon) with:
+
+```
+[out:json][timeout:25];
+(
+  node["highway"="traffic_signals"](SOUTH,WEST,NORTH,EAST);
+  way["crossing"="traffic_signals"](SOUTH,WEST,NORTH,EAST);
+  node["crossing"="traffic_signals"](SOUTH,WEST,NORTH,EAST);
+);
+out body geom;
+```
+
+against `https://overpass-api.de/api/interpreter`, and save the JSON response. Filtering explicitly on the `highway`/`crossing` tag values (as `load_osm_entities()` in both scripts already does) matters: Overpass's `>;` recursion into a matched way's constituent nodes will otherwise silently pull in unrelated kerb and footpath-vertex nodes alongside genuine traffic-signal entities.
 
 The renderer needs a working OpenGL context; run with `XDG_SESSION_TYPE=x11` and `WAYLAND_DISPLAY` unset if running headless under Wayland.
 

@@ -22,7 +22,7 @@ dense to begin with (see the semester report's point-density finding).
 Usage:
     python phase2_vertical_only_v8.py <laz_file>
 
-Output (in /home/rohit/Documents/Output/phase2/):
+Output (in ./output/phase2/, or --output-dir if you add that flag):
     vertical_only_<part>.laz
 """
 
@@ -34,7 +34,7 @@ import re
 import numpy as np
 import laspy
 
-OUTPUT_DIR = "/home/rohit/Documents/Output/phase2"
+OUTPUT_DIR = "./output/phase2"
 
 RANSAC_DIST_THRESH  = 0.20
 RANSAC_N_POINTS     = 3

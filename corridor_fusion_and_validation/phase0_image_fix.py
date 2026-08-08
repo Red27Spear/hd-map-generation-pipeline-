@@ -15,14 +15,20 @@ colorize_pointcloud.py already reads from (DATA_FIX_DIR) -- that is the
 correct integration point, not a per-tile directory.
 
 Usage:
-    python phase0_image_fix.py <laz_file>
+    python phase0_image_fix.py <laz_file> [--image-dir DIR] [--camextr PATH]
+        [--intrinsics-xml PATH] [--output-dir DIR]
 
-Outputs:
-    /home/rohit/Documents/Output/data_fix/<original_filename>.jpg   (corrected images)
-    /home/rohit/Documents/Output/data_fix/phase0_pinhole_K.json     (new pinhole K per camera)
-    /home/rohit/Documents/Output/data_fix/phase0_report.txt         (processing summary)
+Run from within this directory; defaults assume the repo's bundled part15
+demo data (only 10 sparse frames, so full-tile correction needs --image-dir
+pointed at your own full frame set).
+
+Outputs (in --output-dir):
+    <original_filename>.jpg   (corrected images)
+    phase0_pinhole_K.json     (new pinhole K per camera)
+    phase0_report.txt         (processing summary)
 """
 
+import argparse
 import sys
 import os
 import json
@@ -32,10 +38,10 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import cv2
 
-IMAGE_DIR     = "/home/rohit/Downloads/Project/hd_map_p06/data/color"
-CAMEXTR_PATH  = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/CamExtr.json"
-INTRINSIC_XML = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/9020C_0140_toScanner_final.xml"
-OUTPUT_DIR    = "/home/rohit/Documents/Output/data_fix"
+IMAGE_DIR     = "../data/part15/images"
+CAMEXTR_PATH  = "../config/CamExtr.json"
+INTRINSIC_XML = "../config/9020C_0140_toScanner_final.xml"
+OUTPUT_DIR    = "./output/data_fix"
 
 BBOX_MARGIN_M = 20.0
 UNDIST_BALANCE = 0.3
@@ -187,11 +193,20 @@ def save_pinhole_K_json(pinhole_data):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python phase0_image_fix.py <path_to_laz_file>")
-        sys.exit(1)
+    global IMAGE_DIR, CAMEXTR_PATH, INTRINSIC_XML, OUTPUT_DIR
 
-    laz_path = sys.argv[1]
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("laz_file")
+    ap.add_argument("--image-dir", default=IMAGE_DIR)
+    ap.add_argument("--camextr", default=CAMEXTR_PATH)
+    ap.add_argument("--intrinsics-xml", default=INTRINSIC_XML)
+    ap.add_argument("--output-dir", default=OUTPUT_DIR)
+    args = ap.parse_args()
+    IMAGE_DIR, CAMEXTR_PATH, INTRINSIC_XML, OUTPUT_DIR = (
+        args.image_dir, args.camextr, args.intrinsics_xml, args.output_dir)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    laz_path = args.laz_file
     if not os.path.isfile(laz_path):
         print(f"ERROR: LAZ file not found: {laz_path}")
         sys.exit(1)

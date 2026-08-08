@@ -30,13 +30,19 @@ import laspy
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
-PHASE0_DIR    = "/home/rohit/Documents/Output/data_fix"
-PHASE2_DIR    = "/home/rohit/Documents/Output/phase2"
-PHASE3_DIR    = "/home/rohit/Documents/Output/phase3"
-CAMEXTR_PATH  = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/CamExtr.json"
-INTRINSIC_XML = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/9020C_0140_toScanner_final.xml"
-OUTPUT_DIR    = "/home/rohit/Documents/Output/lidar_color"
-CROP_DIR      = "/home/rohit/Documents/Output/lidar_color/detection_crops"
+# These module-level paths are only used by this script's OWN standalone
+# __main__ mode below (a from-scratch semantic-sprite pipeline run) -- not
+# by make_light_texture_stvo(), the pure function other scripts in this
+# stage import from this file. None of phase0/phase2/phase3's intermediate
+# outputs are bundled in this repo; edit these or run with your own tile's
+# equivalent directory structure before using __main__ mode directly.
+PHASE0_DIR    = "./output/data_fix"           # from phase0_image_fix.py
+PHASE2_DIR    = "./output/phase2"             # from phase2_*.py
+PHASE3_DIR    = "./output/phase3"             # detection geojson outputs, not covered by this stage
+CAMEXTR_PATH  = "../config/CamExtr.json"
+INTRINSIC_XML = "../config/9020C_0140_toScanner_final.xml"
+OUTPUT_DIR    = "./output/lidar_color"
+CROP_DIR      = "./output/lidar_color/detection_crops"
 
 # Realistic German sign dimensions (metres) — StVO compliant
 SIGN_SIZE_DEFAULT = 0.60      # Standard prohibitory/mandatory (Sign 250-299)

@@ -36,7 +36,7 @@ from phase2_strip_ground_v3 import (
     estimate_ground_and_strip, process_elevated_points, log,
 )
 
-OUTPUT_DIR = "/home/rohit/Documents/Output/phase2"
+OUTPUT_DIR = "./output/phase2"
 
 CLASS_ROAD = 2
 CLASS_VERTICAL = 1

@@ -16,25 +16,25 @@ furthest apart (the widest available baseline), and compute the angle each
 makes to the pole position -- the classic intersection/parallax angle.
 
 Usage:
-    python geometric_degeneracy_analysis.py
+    python geometric_degeneracy_analysis.py --camextr ../config/CamExtr.json \
+        --poles part24/48:path/to/part48_pointcloud_poles.json \
+        --poles part23/49:path/to/part49_pointcloud_poles.json \
+        [...] --out geometric_degeneracy.json
+
+Each --poles is "pair_name:path" for one revisit pair's pole JSON, e.g.
+extract_and_snap_poles.py's output. No demo multi-pair corridor data is
+bundled in this repo, so at least one --poles must be supplied.
 """
 
+import argparse
+import os
 import json
 import math
 import numpy as np
 
-CAMEXTR_PATH = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/CamExtr.json"
-POLE_FILES = {
-    "part24/48": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part48_area_pointcloud_poles.json",
-    "part23/49": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part49_area_pointcloud_poles.json",
-    "part25/47": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part47_area_pointcloud_poles.json",
-    "part22/50": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part50_area_pointcloud_poles.json",
-}
-OUT_JSON = "/home/rohit/Downloads/Project/hd_map_p06/output/report/geometric_degeneracy.json"
 
-
-def load_camextr_positions():
-    entries = json.load(open(CAMEXTR_PATH))["Profiler_0"]
+def load_camextr_positions(camextr_path):
+    entries = json.load(open(camextr_path))["Profiler_0"]
     return {e["Image"]: np.array(e["Xyz"][:3]) for e in entries}
 
 
@@ -47,11 +47,20 @@ def intersection_angle_deg(cam_a, cam_b, pole_xyz):
 
 
 if __name__ == "__main__":
-    cam_pos = load_camextr_positions()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--camextr", default="../config/CamExtr.json")
+    ap.add_argument("--poles", action="append", required=True, dest="pole_files",
+                     help='one per revisit pair: "pair_name:path/to/pointcloud_poles.json"')
+    ap.add_argument("--out", default="./output/report/geometric_degeneracy.json")
+    args = ap.parse_args()
+    pole_files = dict(spec.split(":", 1) for spec in args.pole_files)
+    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+
+    cam_pos = load_camextr_positions(args.camextr)
     print(f"CamExtr: {len(cam_pos)} image positions loaded")
 
     rows = []
-    for pair_name, path in POLE_FILES.items():
+    for pair_name, path in pole_files.items():
         poles = json.load(open(path))
         for p in poles:
             pole_xyz = np.array([p["utm_easting"], p["utm_northing"], 0.0])
@@ -100,5 +109,5 @@ if __name__ == "__main__":
     json.dump({"rows": rows, "pearson_r": round(float(corr), 3),
                "narrow_lt15deg": {"n": int(len(narrow)), "mean_ray_miss_m": round(float(narrow.mean()), 3), "median_ray_miss_m": round(float(np.median(narrow)), 3)},
                "wide_ge15deg": {"n": int(len(wide)), "mean_ray_miss_m": round(float(wide.mean()), 3), "median_ray_miss_m": round(float(np.median(wide)), 3)}},
-              open(OUT_JSON, "w"), indent=2)
-    print(f"\nSaved: {OUT_JSON}")
+              open(args.out, "w"), indent=2)
+    print(f"\nSaved: {args.out}")

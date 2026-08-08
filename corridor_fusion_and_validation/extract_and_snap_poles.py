@@ -64,8 +64,8 @@ from colorize_pointcloud import load_pinhole_K, CAMEXTR_PATH
 # detections_jsonl MUST match the actual geographic area of laz_path -- this
 # script has no way to detect a mismatch itself (a stale/wrong detections
 # file will silently ray-cast against the wrong poles).
-LAZ_PATH = sys.argv[1] if len(sys.argv) > 1 else "/home/rohit/Documents/Output/phase2/road_and_vertical_part48.laz"
-OUT_JSON = sys.argv[2] if len(sys.argv) > 2 else "/home/rohit/Downloads/Project/hd_map_p06/output/report/part48_area_pointcloud_poles.json"
+LAZ_PATH = sys.argv[1] if len(sys.argv) > 1 else "./output/phase2/road_and_vertical.laz"
+OUT_JSON = sys.argv[2] if len(sys.argv) > 2 else "./output/report/pointcloud_poles.json"
 DETECTIONS_JSONL = sys.argv[3] if len(sys.argv) > 3 else None
 CLASS_VERTICAL = 1
 

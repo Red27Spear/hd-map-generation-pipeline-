@@ -105,9 +105,16 @@ def refine_point(X_init, observations, iters=8, pixel_sigma=15.0, huber_delta_px
 
 
 if __name__ == "__main__":
-    import sys, os, json
+    import sys, os, json, argparse
     sys.path.insert(0, os.path.dirname(__file__))
     from colorize_pointcloud import load_pinhole_K, CAMEXTR_PATH
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--detections", default="./output/colorization/detections_part15_stvo_bucketed.jsonl",
+                     help="detections.jsonl, e.g. from detect_signs_lights_sam3.py")
+    ap.add_argument("--tags", default="./output/colorization/part15_option3_tags.json",
+                     help="clustered light/sign tags with a seed 3D position (Option 3 clustering output)")
+    cli_args = ap.parse_args()
 
     def rotMat(roll, pitch, yaw):
         Rx = np.array([[1, 0, 0], [0, np.cos(roll), -np.sin(roll)], [0, np.sin(roll), np.cos(roll)]])
@@ -119,15 +126,14 @@ if __name__ == "__main__":
     by_image = {e["Image"]: e for e in camextr}
     pinhole_k = load_pinhole_K()
 
-    detections_path = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/detections_part15_stvo_bucketed.jsonl"
     dets = []
-    with open(detections_path) as f:
+    with open(cli_args.detections) as f:
         for line in f:
             d = json.loads(line)
             if d["kind"] == "light":
                 dets.append(d)
 
-    tags = json.load(open("/home/rohit/Downloads/Project/hd_map_p06/output/colorization/part15_option3_tags.json"))
+    tags = json.load(open(cli_args.tags))
     lights = [t for t in tags if t["kind"] == "light"]
 
     print(f"{'seed pos':<22} {'n_obs':>6} {'rms_before(px)':>16} {'rms_after(px)':>15} {'shift(m)':>10}")
