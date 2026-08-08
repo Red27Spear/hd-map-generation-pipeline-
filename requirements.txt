@@ -26,3 +26,4 @@ requests
 # Utility
 tqdm
 pandas
+matplotlib
