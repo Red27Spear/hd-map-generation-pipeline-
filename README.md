@@ -1,8 +1,8 @@
 # HD Map Generation Pipeline
 
-A five-stage pipeline that turns raw mobile-mapping data (fisheye camera frames + LiDAR point clouds) into an HD map: undistorted imagery, detected/localised road signs and traffic lights, cleaned point clouds, lane markings, and a colorised point cloud fusing camera RGB onto LiDAR geometry.
+A six-stage pipeline that turns raw mobile-mapping data (fisheye camera frames + LiDAR point clouds) into an HD map: undistorted imagery, detected/localised road signs and traffic lights, cleaned point clouds, lane markings, a colorised point cloud fusing camera RGB onto LiDAR geometry, and multi-pass corridor fusion validated against OpenStreetMap.
 
-The pipeline is demonstrated end to end on one real tile from a mobile-mapping survey driven through Bonn, Germany, referred to throughout as `part15`.
+The pipeline is demonstrated end to end on one real tile from a mobile-mapping survey driven through Bonn, Germany, referred to throughout as `part15`; the final stage extends this to a real ~1.13 km multi-tile corridor from the same survey.
 
 ## Pipeline stages
 
@@ -18,9 +18,13 @@ lidar_feature_extraction    lane markings from intensity, Lanelet2/OSM export,
         |
 rgb_pointcloud_fusion       calibrate cameras, register poses, project LiDAR
                              into images, extract RGB back onto the point cloud
+        |
+corridor_fusion_and_        fuse multiple revisit passes of the same road,
+  validation                validate localized poles/signs/lights against OSM,
+                             render a first-person drive-through
 ```
 
-`camera_preprocessing` and `camera_feature_extraction` feed `lidar_feature_extraction` (signs/lights get baked into the OSM export and the semantic point cloud). `rgb_pointcloud_fusion` is a separate, self-contained calibration-to-colorization chain; its output colorized point cloud is also read back into `camera_feature_extraction` as an optional signal for keeping detections off the drivable road surface.
+`camera_preprocessing` and `camera_feature_extraction` feed `lidar_feature_extraction` (signs/lights get baked into the OSM export and the semantic point cloud). `rgb_pointcloud_fusion` is a separate, self-contained calibration-to-colorization chain; its output colorized point cloud is also read back into `camera_feature_extraction` as an optional signal for keeping detections off the drivable road surface. `corridor_fusion_and_validation` builds on `rgb_pointcloud_fusion` (using a corrected calibration convention, see that stage's README) and `camera_feature_extraction`'s detections, extending single-tile colorization to multi-pass corridor fusion and adding an external accuracy check against OpenStreetMap.
 
 Each section directory has its own README covering exact input/output formats.
 
@@ -52,18 +56,20 @@ pip install -r requirements.txt
 ## Known limitations
 
 - **Camera pre-processing**: the automatic white-balance + olive-desaturation pass can overcorrect bright sky into a magenta cast on some frames. See `camera_preprocessing/README.md`.
-- **RGB/point cloud fusion**: reprojection accuracy is currently coarse (roughly 700-1150 px mean error on a 2448x2048 image per the fusion code's own diagnostics), so colorization is visibly smeared/offset rather than pixel-accurate. See `rgb_pointcloud_fusion/README.md`.
+- **RGB/point cloud fusion**: reprojection accuracy in the stage-5 chain is coarse (roughly 700-1150 px mean error on a 2448x2048 image per the fusion code's own diagnostics), so colorization is visibly smeared/offset rather than pixel-accurate. See `rgb_pointcloud_fusion/README.md`. `corridor_fusion_and_validation` uses a corrected calibration convention that fixes this; see that stage's README.
 - **LiDAR pre-processing**: works from a re-run on this machine's copy of the data; a separate, more advanced Patchwork++-based ground segmentation was developed for this project but produced no output on this machine and isn't included here.
+- **Corridor fusion and validation**: every accuracy number is checked against OSM or the pipeline's own internal consistency, never against a dedicated ground-control-point survey, so absolute trueness (as opposed to precision) is still unverified. See `corridor_fusion_and_validation/README.md`.
 
 ## Repository layout
 
 ```
-config/                      shared camera calibration (CamExtr.json, intrinsics XML)
-data/part15/                 demo LiDAR tile, camera frames, and fused output
-camera_preprocessing/        Stage 1
-camera_feature_extraction/   Stage 2
-lidar_preprocessing/         Stage 3
-lidar_feature_extraction/    Stage 4
-rgb_pointcloud_fusion/       Stage 5
+config/                          shared camera calibration (CamExtr.json, intrinsics XML)
+data/part15/                     demo LiDAR tile, camera frames, and fused output
+camera_preprocessing/            Stage 1
+camera_feature_extraction/       Stage 2
+lidar_preprocessing/             Stage 3
+lidar_feature_extraction/        Stage 4
+rgb_pointcloud_fusion/           Stage 5
+corridor_fusion_and_validation/  Stage 6
 requirements.txt
 ```
