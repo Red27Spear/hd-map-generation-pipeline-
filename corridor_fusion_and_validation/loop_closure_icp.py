@@ -110,15 +110,26 @@ def find_loop_closures(traj_en, times, spatial_r=2.0, min_dt=30.0):
 
 if __name__ == "__main__":
     import laspy
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--laz", default="./output/phase2/road_and_vertical.laz",
+                     help="road-classified LAZ, e.g. from phase2_road_and_vertical.py or phase2_strip_ground_v3.py "
+                          "run on data/part15/raw/*.laz -- not bundled in this repo directly")
+    ap.add_argument("--road-class", type=int, default=1, help="LAS classification code for road-surface points")
+    ap.add_argument("--center", type=float, nargs=2, default=[366419.5, 5621696.2],
+                     metavar=("EASTING", "NORTHING"), help="UTM centre of the flat patch to self-test against")
+    ap.add_argument("--radius", type=float, default=8.0)
+    args = ap.parse_args()
 
     print("Correctness self-test: real point-cloud patch, ICP recovers a known synthetic transform")
-    las = laspy.read("/home/rohit/Documents/Output/phase2/clean_part15.laz")
+    las = laspy.read(args.laz)
     cls = np.asarray(las.classification)
-    xyz = np.vstack([las.x, las.y, las.z]).T.astype(np.float64)[cls == 1]
+    xyz = np.vstack([las.x, las.y, las.z]).T.astype(np.float64)[cls == args.road_class]
 
-    center = (366419.5, 5621696.2)
+    center = tuple(args.center)
     d2 = (xyz[:, 0] - center[0]) ** 2 + (xyz[:, 1] - center[1]) ** 2
-    patch = xyz[d2 <= 8 ** 2][:, :2]
+    patch = xyz[d2 <= args.radius ** 2][:, :2]
     print(f"  patch: {len(patch)} real road-surface points")
 
     # Work entirely in a locally-centred frame throughout -- both the

@@ -29,10 +29,16 @@ Adenauerallee-corridor scope used throughout this session, and report
 a clean before/after table.
 
 Usage:
-    python pipeline.py
+    python pipeline.py [--track PATH] [--detections PATH] [--tags PATH]
+        [--road-laz PATH] [--osm-live PATH] [--ways PATH] [--out PATH]
+
+None of --track/--detections/--tags/--road-laz/--osm-live/--ways are
+bundled directly in this repo (they're intermediate outputs of earlier
+pipeline scripts, or a cached OSM/Overpass fetch); the defaults below
+document what each input actually is, not working paths in a fresh clone.
 """
 
-import sys, os, json, math
+import sys, os, json, math, argparse
 sys.path.insert(0, os.path.dirname(__file__))
 
 import numpy as np
@@ -44,12 +50,13 @@ from refine_triangulation import refine_point, project
 from colorize_pointcloud import load_pinhole_K, CAMEXTR_PATH
 
 TILE = (366263.7, 366598.1, 5621517.9, 5621826.4)
-TRACK_PATH = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/moro.track.txt"
-DETECTIONS_JSONL = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/detections_part15_stvo_bucketed.jsonl"
-OPTION3_TAGS = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/part15_option3_tags.json"
-ROAD_LAZ = "/home/rohit/Documents/Output/phase2/clean_part15.laz"
-OSM_LIVE = "/home/rohit/Downloads/Project/hd_map_p06/config/osm_part15_signs_lights_live_20260807.json"
-WAYS_JSON = "/home/rohit/Downloads/Project/hd_map_p06/config/osm_part15_ways.json"
+TRACK_PATH = "../config/moro.track.txt"
+DETECTIONS_JSONL = "./output/colorization/detections_part15_stvo_bucketed.jsonl"
+OPTION3_TAGS = "./output/colorization/part15_option3_tags.json"
+ROAD_LAZ = "./output/phase2/road_and_vertical.laz"
+OSM_LIVE = "./output/config/osm_part15_signs_lights_live.json"
+WAYS_JSON = "./output/config/osm_part15_ways.json"
+OUT_PATH = "./output/colorization/part15_pipeline_refined_tags.json"
 
 
 def rotMat(roll, pitch, yaw):
@@ -224,6 +231,19 @@ def step5_compare_osm(refined_lights):
 
 
 if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--track", default=TRACK_PATH)
+    ap.add_argument("--detections", default=DETECTIONS_JSONL)
+    ap.add_argument("--tags", default=OPTION3_TAGS)
+    ap.add_argument("--road-laz", default=ROAD_LAZ)
+    ap.add_argument("--osm-live", default=OSM_LIVE)
+    ap.add_argument("--ways", default=WAYS_JSON)
+    ap.add_argument("--out", default=OUT_PATH)
+    cli_args = ap.parse_args()
+    TRACK_PATH, DETECTIONS_JSONL, OPTION3_TAGS, ROAD_LAZ, OSM_LIVE, WAYS_JSON = (
+        cli_args.track, cli_args.detections, cli_args.tags, cli_args.road_laz, cli_args.osm_live, cli_args.ways)
+    os.makedirs(os.path.dirname(cli_args.out) or ".", exist_ok=True)
+
     precision = step1_precision_assessment()
     slam = step2_3_loop_closure_and_slam()
     refined_lights = step4_refine_lights()
@@ -239,6 +259,5 @@ if __name__ == "__main__":
         "n_lights_total": len(refined_lights),
     }, indent=2))
 
-    out_path = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/part15_pipeline_refined_tags.json"
-    json.dump(refined_lights, open(out_path, "w"), indent=2)
-    print(f"\nsaved refined lights: {out_path}")
+    json.dump(refined_lights, open(cli_args.out, "w"), indent=2)
+    print(f"\nsaved refined lights: {cli_args.out}")

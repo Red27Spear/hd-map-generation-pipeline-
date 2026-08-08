@@ -42,8 +42,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-DATA_FIX_DIR = "/home/rohit/Documents/Output/data_fix"
-CAMEXTR_PATH = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/CamExtr.json"
+DATA_FIX_DIR = "./output/data_fix"  # from phase0_image_fix.py
+CAMEXTR_PATH = "../config/CamExtr.json"
 SAM3_MODEL_ID = "facebook/sam3"
 
 PROMPTS = {"light": "traffic light", "sign": "traffic sign"}
@@ -134,11 +134,16 @@ def process_image(processor, model, device, img_path):
 
 
 def main():
+    global DATA_FIX_DIR, CAMEXTR_PATH
+
     ap = argparse.ArgumentParser()
     ap.add_argument("laz_path")
     ap.add_argument("--limit", type=int, default=None, help="process only first N images (smoke test)")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--data-fix-dir", default=DATA_FIX_DIR, help="corrected images from phase0_image_fix.py")
+    ap.add_argument("--camextr", default=CAMEXTR_PATH)
     args = ap.parse_args()
+    DATA_FIX_DIR, CAMEXTR_PATH = args.data_fix_dir, args.camextr
 
     out_path = args.out or os.path.join(
         os.path.dirname(args.laz_path),

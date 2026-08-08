@@ -13,22 +13,23 @@ nearest OSM entity a single time, so a shared entity's distance reflects
 the true centroid of ALL poles (from every pair) assigned to it.
 
 Usage:
-    python pool_all_pairs_osm.py
+    python pool_all_pairs_osm.py --osm-json cached_overpass_response.json \
+        --poles part24/48:path/to/part48_pointcloud_poles.json \
+        --poles part23/49:path/to/part49_pointcloud_poles.json \
+        [...] --out pooled_corridor_osm_comparison.json
+
+--osm-json is a cached response from the corridor's own Overpass query
+(see this stage's README, "Fetching OSM reference data", for the exact
+query and bug it works around). No demo multi-pair corridor data is
+bundled in this repo, so at least one --poles and --osm-json must be
+supplied.
 """
 
+import argparse
+import os
 import json
 import math
 from pyproj import Transformer
-
-POLE_FILES = {
-    "part24/48": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part48_area_pointcloud_poles.json",
-    "part23/49": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part49_area_pointcloud_poles.json",
-    "part25/47": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part47_area_pointcloud_poles.json",
-    "part22/50": "/home/rohit/Downloads/Project/hd_map_p06/output/report/part50_area_pointcloud_poles.json",
-}
-OSM_JSON = "/tmp/osm_pooled_corridor_signals.json"
-OUT_JSON = "/home/rohit/Downloads/Project/hd_map_p06/output/report/pooled_corridor_osm_comparison.json"
-OUT_GEOJSON = "/home/rohit/Downloads/Project/hd_map_p06/output/report/pooled_corridor_osm_comparison.geojson"
 
 DEDUP_DIST_M = 1.5
 
@@ -44,8 +45,8 @@ def haversine_m(lon1, lat1, lon2, lat2):
     return 2 * R * math.asin(math.sqrt(a))
 
 
-def load_osm_entities():
-    d = json.load(open(OSM_JSON))
+def load_osm_entities(osm_json_path):
+    d = json.load(open(osm_json_path))
     entities = []
     for e in d["elements"]:
         tags = e.get("tags", {})
@@ -121,9 +122,22 @@ def compare(poles, osm_entities, label):
 
 
 if __name__ == "__main__":
-    print("[1/3] Loading and pooling poles from all 4 successful pairs...")
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--poles", action="append", required=True, dest="pole_files",
+                     help='one per revisit pair: "pair_name:path/to/pointcloud_poles.json"')
+    ap.add_argument("--osm-json", required=True, help="cached Overpass API response for the corridor bbox")
+    ap.add_argument("--out", default="./output/report/pooled_corridor_osm_comparison.json")
+    ap.add_argument("--out-geojson", default=None, help="defaults to --out with a .geojson extension")
+    ap.add_argument("--abandoned-pairs", nargs="*", default=[],
+                     help="pair names attempted but excluded for weak registration, recorded for the record only")
+    args = ap.parse_args()
+    pole_files = dict(spec.split(":", 1) for spec in args.pole_files)
+    out_geojson = args.out_geojson or os.path.splitext(args.out)[0] + ".geojson"
+    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+
+    print(f"[1/3] Loading and pooling poles from {len(pole_files)} pairs...")
     all_poles = []
-    for pair_name, path in POLE_FILES.items():
+    for pair_name, path in pole_files.items():
         poles = json.load(open(path))
         for p in poles:
             p["_pair"] = pair_name
@@ -134,26 +148,26 @@ if __name__ == "__main__":
     print("[2/3] Deduping and fetching OSM entities...")
     poles_dedup = dedup(all_poles)
     print(f"  {len(poles_dedup)} distinct poles after dedup")
-    osm_entities = load_osm_entities()
+    osm_entities = load_osm_entities(args.osm_json)
     print(f"  {len(osm_entities)} OSM entities in pooled corridor area")
 
     print("[3/3] Comparing (all well-represented) and (dual-pass only)...")
-    summary_all, feats_all = compare(poles_dedup, osm_entities, "pooled corridor: all well-represented poles, 4 pairs")
+    summary_all, feats_all = compare(poles_dedup, osm_entities, f"pooled corridor: all well-represented poles, {len(pole_files)} pairs")
 
     dual_only = [p for p in poles_dedup if p.get("dual_pass")]
-    summary_dual, feats_dual = compare(dual_only, osm_entities, "pooled corridor: dual-pass-only poles, 4 pairs")
+    summary_dual, feats_dual = compare(dual_only, osm_entities, f"pooled corridor: dual-pass-only poles, {len(pole_files)} pairs")
 
     out = {"all_well_represented": summary_all, "dual_pass_only": summary_dual,
-           "source_pairs": list(POLE_FILES.keys()), "abandoned_pairs": ["part21/51", "part24/47"]}
-    with open(OUT_JSON, "w") as f:
+           "source_pairs": list(pole_files.keys()), "abandoned_pairs": args.abandoned_pairs}
+    with open(args.out, "w") as f:
         json.dump(out, f, indent=2)
 
     geo = {"type": "FeatureCollection", "summary": summary_all, "features": feats_all}
-    with open(OUT_GEOJSON, "w") as f:
+    with open(out_geojson, "w") as f:
         json.dump(geo, f, indent=2)
 
     print()
     print(json.dumps({"all_well_represented": summary_all["distance_stats_m"] | {"n_entities": summary_all["n_osm_entities_matched"], "n_poles": summary_all["n_distinct_poles"]},
                        "dual_pass_only": summary_dual["distance_stats_m"] | {"n_entities": summary_dual["n_osm_entities_matched"], "n_poles": summary_dual["n_distinct_poles"]}}, indent=2))
-    print(f"\nSaved: {OUT_JSON}")
-    print(f"Saved: {OUT_GEOJSON}")
+    print(f"\nSaved: {args.out}")
+    print(f"Saved: {out_geojson}")

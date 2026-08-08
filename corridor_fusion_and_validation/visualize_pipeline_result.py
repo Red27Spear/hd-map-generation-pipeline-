@@ -17,10 +17,14 @@ from HOVER_LABELS_STATUS.md rather than hiding it:
     tinted blue, so it's visually distinguishable in CloudCompare/QGIS
 
 Usage:
-    python visualize_pipeline_result.py
+    python visualize_pipeline_result.py [--refined-tags PATH] [--base-laz PATH] [--out PATH]
+
+--refined-tags is pipeline.py's own output (part15_pipeline_refined_tags.json
+by default); --base-laz is any already-colorized LAZ for the same tile, e.g.
+data/part15/results/colorized_part15.laz in this repo's bundled demo data.
 """
 
-import sys, os, json, math
+import sys, os, json, math, argparse
 sys.path.insert(0, os.path.dirname(__file__))
 
 import numpy as np
@@ -29,9 +33,9 @@ import laspy
 from colorize_pointcloud import place_label_plate, LABEL_PLATE_H_M, load_pinhole_K, CAMEXTR_PATH
 from phase4c_stvo_sprites import make_light_texture_stvo
 
-REFINED_TAGS = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/part15_pipeline_refined_tags.json"
-BASE_LAZ = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/colorized_part15_hover_labels_v6.laz"
-OUTPUT_LAZ = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/part15_pipeline_refined_lights_visual.laz"
+REFINED_TAGS = "./output/colorization/part15_pipeline_refined_tags.json"  # from pipeline.py
+BASE_LAZ = "../data/part15/results/colorized_part15.laz"
+OUTPUT_LAZ = "./output/colorization/part15_pipeline_refined_lights_visual.laz"
 
 STICKER_W_M, STICKER_H_M = 0.40, 1.10
 STICKER_GAP_M = 0.15
@@ -54,6 +58,16 @@ def bearing_from_rep_image(image_name, by_image):
 
 
 def main():
+    global REFINED_TAGS, BASE_LAZ, OUTPUT_LAZ
+
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--refined-tags", default=REFINED_TAGS)
+    ap.add_argument("--base-laz", default=BASE_LAZ)
+    ap.add_argument("--out", default=OUTPUT_LAZ)
+    args = ap.parse_args()
+    REFINED_TAGS, BASE_LAZ, OUTPUT_LAZ = args.refined_tags, args.base_laz, args.out
+    os.makedirs(os.path.dirname(OUTPUT_LAZ) or ".", exist_ok=True)
+
     print("[1/3] Loading pipeline output + camera poses...")
     tags = json.load(open(REFINED_TAGS))
     camextr = json.load(open(CAMEXTR_PATH))["Profiler_0"]

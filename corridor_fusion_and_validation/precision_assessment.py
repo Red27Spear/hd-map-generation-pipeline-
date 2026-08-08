@@ -122,18 +122,27 @@ def extract_flat_patch(laz_path, center_en, radius_m=1.5, classification=None):
 
 
 if __name__ == "__main__":
-    ROAD_LAZ = "/home/rohit/Documents/Output/phase2/clean_part15.laz"
+    import argparse
 
-    # several small, local road-surface patches, well away from curbs/
-    # intersections (mid-block points established earlier this session)
-    centers = [
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--laz", default="./output/phase2/road_and_vertical.laz",
+                     help="road-classified LAZ, e.g. from phase2_road_and_vertical.py or phase2_strip_ground_v3.py "
+                          "run on data/part15/raw/*.laz -- not bundled in this repo directly")
+    ap.add_argument("--road-class", type=int, default=1, help="LAS classification code for road-surface points")
+    ap.add_argument("--radius", type=float, default=1.5)
+    ap.add_argument("--center", action="append", type=float, nargs=2, metavar=("EASTING", "NORTHING"), dest="centers",
+                     help="one or more UTM patch centres to test; repeatable. Defaults to four mid-block points "
+                          "found on this project's own part15 tile -- edit for your own data")
+    args = ap.parse_args()
+
+    centers = args.centers or [
         (366410.4, 5621748.9), (366415.8, 5621734.1),
         (366421.3, 5621719.4), (366470.0, 5621629.0),
     ]
 
     print(f"{'center':<22} {'n_pts':>7} {'mean(mm)':>10} {'std(mm)':>9} {'rms(mm)':>9}")
     for c in centers:
-        patch = extract_flat_patch(ROAD_LAZ, c, radius_m=1.5, classification=1)
+        patch = extract_flat_patch(args.laz, c, radius_m=args.radius, classification=args.road_class)
         if len(patch) < 20:
             print(f"{str(c):<22} too few points ({len(patch)})")
             continue

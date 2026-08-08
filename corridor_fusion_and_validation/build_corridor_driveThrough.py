@@ -10,32 +10,29 @@ Builds the part47-48-49-50 corridor asset for the drive-through video:
      see that function's own docstring for why unmatched ones are dropped).
 
 Usage:
-    python build_corridor_driveThrough.py
+    python build_corridor_driveThrough.py --out-dir ./output \
+        --tile part47:completed_from_part25_colorized.laz:part47_detections.jsonl \
+        --tile part48:completed_from_part24_colorized.laz:part48_detections.jsonl \
+        [...]
+
+Each --tile is "name:colorized_laz_path:detections_jsonl_path" (colon-
+separated) for one already gap-filled, colorized recipient tile -- the
+output of merge_overlapping_tiles.py + gapfill_recipient_from_donor.py +
+combine_colorized.py run on that tile. No demo corridor data is bundled in
+this repo (only the single part15 tile), so --tile must be supplied.
 """
 
-import sys, os, time
+import sys, os, time, argparse
 import numpy as np
 import laspy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from colorize_pointcloud import bake_hover_labels
 
-COLOR_DIR = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization"
-TILES = [
-    ("part47", f"{COLOR_DIR}/part47_completed_from_part25_colorized.laz",
-               f"{COLOR_DIR}/part47_completed_detections_sam3.jsonl"),
-    ("part48", f"{COLOR_DIR}/part48_completed_from_part24_colorized.laz",
-               f"{COLOR_DIR}/part48_completed_detections_sam3.jsonl"),
-    ("part49", f"{COLOR_DIR}/part49_completed_from_part23_colorized.laz",
-               f"{COLOR_DIR}/part49_completed_detections_sam3.jsonl"),
-    ("part50", f"{COLOR_DIR}/part50_completed_from_part22_colorized.laz",
-               f"{COLOR_DIR}/part50_completed_detections_sam3.jsonl"),
-]
 
-OUT_DIR = "/home/rohit/Documents/Output/phase2"
-MERGED_LAZ = f"{OUT_DIR}/corridor_47_48_49_50_merged.laz"
-MERGED_DETECTIONS = f"{OUT_DIR}/corridor_47_48_49_50_detections.jsonl"
-LABELED_LAZ = f"{OUT_DIR}/corridor_47_48_49_50_labeled.laz"
+def parse_tile_arg(spec):
+    name, laz, jsonl = spec.split(":", 2)
+    return name, laz, jsonl
 
 
 def log(msg):
@@ -89,8 +86,20 @@ def merge_detections(tiles, out_path):
 
 
 if __name__ == "__main__":
-    merge_laz(TILES, MERGED_LAZ)
-    merge_detections(TILES, MERGED_DETECTIONS)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--tile", action="append", required=True, dest="tiles",
+                     help='one per recipient tile: "name:colorized_laz_path:detections_jsonl_path"')
+    ap.add_argument("--out-dir", default="./output")
+    args = ap.parse_args()
+
+    tiles = [parse_tile_arg(t) for t in args.tiles]
+    os.makedirs(args.out_dir, exist_ok=True)
+    merged_laz = os.path.join(args.out_dir, "corridor_merged.laz")
+    merged_detections = os.path.join(args.out_dir, "corridor_detections.jsonl")
+    labeled_laz = os.path.join(args.out_dir, "corridor_labeled.laz")
+
+    merge_laz(tiles, merged_laz)
+    merge_detections(tiles, merged_detections)
     log("[3/3] Baking STVO hover-label stickers onto the merged corridor...")
-    bake_hover_labels(MERGED_LAZ, MERGED_DETECTIONS, LABELED_LAZ)
-    log(f"\nDone. Labeled corridor cloud: {LABELED_LAZ}")
+    bake_hover_labels(merged_laz, merged_detections, labeled_laz)
+    log(f"\nDone. Labeled corridor cloud: {labeled_laz}")

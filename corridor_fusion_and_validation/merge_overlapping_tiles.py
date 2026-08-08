@@ -28,10 +28,16 @@ Method:
      extent + part48's DBSCAN-validated gap-fill points inside the overlap.
 
 Usage:
-    python merge_overlapping_tiles.py
+    python merge_overlapping_tiles.py <tile_a.laz> <tile_b.laz> <out.laz> [--margin M]
+
+tile_a is the frame both point clouds get registered into (its own points
+pass through unchanged); tile_b is the one being registered and gap-filled
+from. The overlap region is computed automatically from both tiles' real
+extents (intersected, plus --margin), not a hardcoded bounding box.
 """
 
 import sys
+import argparse
 import numpy as np
 import laspy
 from scipy.spatial import cKDTree
@@ -40,12 +46,6 @@ from sklearn.cluster import DBSCAN
 
 def log(msg):
     print(msg, flush=True)
-
-
-LAZ_DIR = "/home/rohit/Downloads/Project/hd_map_p06/data/LAZ"
-FILE_A = f"{LAZ_DIR}/9020C-0140_08.05.2026_08.10.22_MoRo_Bonn.all.part24.laz"
-FILE_B = f"{LAZ_DIR}/9020C-0140_08.05.2026_08.10.22_MoRo_Bonn.all.part48.laz"
-OUT_LAZ = "/home/rohit/Downloads/Project/hd_map_p06/output/colorization/part24_48_completed_v2.laz"
 
 VOXEL_M = 0.15             # bookkeeping cell size (grouping gap points back to voxels for DBSCAN)
 GAP_DIST_M = 0.40          # a donor point counts as a genuine gap only if no recipient
@@ -160,21 +160,32 @@ def write_laz(path, xyz, template_header):
 
 
 if __name__ == "__main__":
-    emin, emax = 367345.9, 367662.8
-    nmin, nmax = 5619581.9, 5619892.2
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("tile_a", help="reference tile; its own points pass through unchanged")
+    ap.add_argument("tile_b", help="tile being registered onto tile_a and gap-filled from")
+    ap.add_argument("out_laz")
+    ap.add_argument("--margin", type=float, default=15.0, help="metres of margin around the computed overlap bbox")
+    args = ap.parse_args()
+    FILE_A, FILE_B, OUT_LAZ = args.tile_a, args.tile_b, args.out_laz
 
-    log("Loading part24 (full tile, single read)...")
+    log(f"Loading {FILE_A} (full tile, single read)...")
     A_full = load_xyz(FILE_A)
-    log(f"  part24: {len(A_full):,} points")
+    log(f"  {len(A_full):,} points")
 
-    log("Loading part48 (full tile, single read)...")
+    log(f"Loading {FILE_B} (full tile, single read)...")
     B_full = load_xyz(FILE_B)
-    log(f"  part48: {len(B_full):,} points")
+    log(f"  {len(B_full):,} points")
+
+    emin = max(A_full[:, 0].min(), B_full[:, 0].min()) - args.margin
+    emax = min(A_full[:, 0].max(), B_full[:, 0].max()) + args.margin
+    nmin = max(A_full[:, 1].min(), B_full[:, 1].min()) - args.margin
+    nmax = min(A_full[:, 1].max(), B_full[:, 1].max()) + args.margin
+    log(f"  computed overlap bbox: E[{emin:.1f},{emax:.1f}] N[{nmin:.1f},{nmax:.1f}]")
 
     ov_A = ((A_full[:, 0] >= emin) & (A_full[:, 0] <= emax) & (A_full[:, 1] >= nmin) & (A_full[:, 1] <= nmax))
     ov_B = ((B_full[:, 0] >= emin) & (B_full[:, 0] <= emax) & (B_full[:, 1] >= nmin) & (B_full[:, 1] <= nmax))
     A_ov, B_ov = A_full[ov_A], B_full[ov_B]
-    log(f"  overlap region: part24={len(A_ov):,} pts, part48={len(B_ov):,} pts")
+    log(f"  overlap region: tile_a={len(A_ov):,} pts, tile_b={len(B_ov):,} pts")
 
     origin = A_ov.mean(axis=0)
     A_ov_c = A_ov - origin
@@ -184,26 +195,26 @@ if __name__ == "__main__":
     a_idx = rng.choice(len(A_ov_c), min(ICP_SUBSAMPLE, len(A_ov_c)), replace=False)
     b_idx = rng.choice(len(B_ov_c), min(ICP_SUBSAMPLE, len(B_ov_c)), replace=False)
 
-    log("Running 3D ICP registration (part48 -> part24 frame)...")
+    log("Running 3D ICP registration (tile_b -> tile_a frame)...")
     R, t, rmse, frac = icp_3d(B_ov_c[b_idx], A_ov_c[a_idx])
     shift = np.linalg.norm(t)
     angle_deg = np.degrees(np.arccos(np.clip((np.trace(R) - 1) / 2, -1, 1)))
     log(f"  final RMSE={rmse*100:.1f}cm  inlier_frac={frac:.2f}  "
         f"translation={shift*100:.1f}cm  rotation={angle_deg:.3f}deg")
 
-    log("Applying registration to all of part48...")
+    log("Applying registration to all of tile_b...")
     B_full_aligned = (B_full - origin) @ R.T + t + origin
     B_ov_aligned = B_full_aligned[ov_B]
     del B_full, B_ov_c, A_ov_c
 
     log(f"Finding occlusion gaps (nearest-surface distance > {GAP_DIST_M}m)...")
     gap_in_A, gap_in_A_keys = find_gap_points(B_ov_aligned, A_ov, GAP_DIST_M)
-    log(f"  candidate fill points for part24 (from part48): {len(gap_in_A):,} "
-        f"({100*len(gap_in_A)/len(B_ov_aligned):.1f}% of part48's overlap points)")
+    log(f"  candidate fill points for tile_a (from tile_b): {len(gap_in_A):,} "
+        f"({100*len(gap_in_A)/len(B_ov_aligned):.1f}% of tile_b's overlap points)")
 
     log("Validating gap-fill candidates with DBSCAN (one point per voxel, then expanded back)...")
     gap_in_A_valid = dbscan_validate_by_voxel(gap_in_A, gap_in_A_keys)
-    log(f"  part24 gap-fill kept after DBSCAN: {len(gap_in_A_valid):,} "
+    log(f"  tile_a gap-fill kept after DBSCAN: {len(gap_in_A_valid):,} "
         f"({100*len(gap_in_A_valid)/max(len(gap_in_A),1):.1f}% of candidates)")
 
     ov_mask_full_B = ((B_full_aligned[:, 0] >= emin) & (B_full_aligned[:, 0] <= emax) &
@@ -213,12 +224,12 @@ if __name__ == "__main__":
     merged = np.vstack([A_full, B_outside_overlap, gap_in_A_valid])
 
     log("")
-    log(f"BEFORE: part24 alone = {len(A_full):,} points")
+    log(f"BEFORE: tile_a alone = {len(A_full):,} points")
     log(f"AFTER:  merged/completed = {len(merged):,} points "
         f"(+{len(merged)-len(A_full):,}, {100*(len(merged)-len(A_full))/len(A_full):.1f}% more)")
-    log(f"  {len(B_outside_overlap):,} from part48's own coverage beyond part24's extent")
+    log(f"  {len(B_outside_overlap):,} from tile_b's own coverage beyond tile_a's extent")
     log(f"  {len(gap_in_A_valid):,} are genuine DBSCAN-validated gap-fill points "
-        f"from part48 that part24's own pass missed, inside the shared overlap region")
+        f"from tile_b that tile_a's own pass missed, inside the shared overlap region")
 
     las = laspy.open(FILE_A)
     write_laz(OUT_LAZ, merged, las.header)

@@ -36,16 +36,16 @@ import laspy
 import open3d as o3d
 import open3d.visualization.rendering as rendering
 
-CAMEXTR_PATH = "/home/rohit/Downloads/Project/hd_map_p06/config/2026_05_08_Bonn/CamExtr.json"
+CAMEXTR_PATH = "../config/CamExtr.json"
 
 
 def _arg(flag, default):
     return sys.argv[sys.argv.index(flag) + 1] if flag in sys.argv else default
 
 
-LABELED_LAZ = _arg("--laz", "/home/rohit/Documents/Output/phase2/corridor_47_48_49_50_labeled.laz")
-FRAMES_DIR = _arg("--frames-dir", "/home/rohit/Documents/Output/phase2/driveThrough_frames")
-OUT_MP4 = _arg("--out", "/home/rohit/Documents/Output/phase2/corridor_driveThrough.mp4")
+LABELED_LAZ = _arg("--laz", "../data/part15/results/colorized_part15.laz")  # --laz is effectively required: no multi-tile corridor demo data is bundled
+FRAMES_DIR = _arg("--frames-dir", "./output/driveThrough_frames")
+OUT_MP4 = _arg("--out", "./output/corridor_driveThrough.mp4")
 PASS_FILTER = _arg("--pass", None)  # None, "1", or "2"
 RENDERER = _arg("--renderer", "legacy")  # "legacy" (fast, small/blocky) or "hq" (Filament, no downsample)
 
