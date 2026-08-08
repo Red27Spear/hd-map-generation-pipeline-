@@ -4,6 +4,8 @@ A six-stage pipeline that turns raw mobile-mapping data (fisheye camera frames +
 
 The pipeline is demonstrated end to end on one real tile from a mobile-mapping survey driven through Bonn, Germany, referred to throughout as `part15`; the final stage extends this to a real ~1.13 km multi-tile corridor from the same survey.
 
+![The full ~1.13 km fused corridor (stage 6), rendered as a first-person drive-through at full native point density: real building facades, trees, road markings, and lane dashes.](corridor_fusion_and_validation/sample_images/corridor_driveThrough_frame.png)
+
 ## Pipeline stages
 
 ```
